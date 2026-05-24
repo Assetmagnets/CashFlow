@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth-store';
 import { useNotificationStore } from '../../stores/notification-store';
-import { initSocket, disconnectSocket } from '../../lib/socket';
 import {
   LayoutDashboard,
   Building2,
@@ -46,24 +45,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   useEffect(() => {
     if (user && token) {
-      // Connect to WebSocket using auth token
-      const socket = initSocket(token);
-
-      // Listen for socket events and dispatch as global DOM events
-      socket.on('dashboard_update', (data) => {
-        window.dispatchEvent(new CustomEvent('dashboard_update', { detail: data }));
-      });
-      socket.on('notification', (data) => {
-        window.dispatchEvent(new CustomEvent('notification', { detail: data }));
-        fetchUnreadCount(); // Refresh count on new notification
-      });
-
+      // Fetch initial unread count on mount
       fetchUnreadCount();
-      
+
+      // Poll for updates every 15 seconds
+      const pollInterval = setInterval(() => {
+        // Dispatch dashboard_update event to trigger active dashboard refresh
+        window.dispatchEvent(new CustomEvent('dashboard_update'));
+        
+        // Refresh unread notifications count
+        fetchUnreadCount();
+      }, 15000);
+
       return () => {
-        socket.off('dashboard_update');
-        socket.off('notification');
-        disconnectSocket();
+        clearInterval(pollInterval);
       };
     }
   }, [user, token]);

@@ -12,7 +12,6 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { FileUploadModule } from './modules/file-upload/file-upload.module';
-import { EventsModule } from './modules/events/events.module';
 
 @Module({
   imports: [
@@ -29,7 +28,6 @@ import { EventsModule } from './modules/events/events.module';
     ReportsModule,
     NotificationsModule,
     FileUploadModule,
-    EventsModule,
   ],
 })
 export class AppModule {}

@@ -1,43 +1,23 @@
 import {
   Controller,
   Post,
-  Get,
-  Param,
   UseInterceptors,
   UploadedFile,
   UseGuards,
-  Res,
   BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { Response } from 'express';
-import { existsSync } from 'fs';
-import { ConfigService } from '@nestjs/config';
+import { memoryStorage } from 'multer';
+import { extname } from 'path';
 
 @Controller('uploads')
 export class FileUploadController {
-  private uploadDir: string;
-
-  constructor(private configService: ConfigService) {
-    this.uploadDir = this.configService.get<string>('UPLOAD_DIR', './uploads');
-  }
-
   @Post()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req, file, callback) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       fileFilter: (req, file, callback) => {
         const allowedTypes = /jpeg|jpg|png|gif|pdf|webp/;
         const mimeType = allowedTypes.test(file.mimetype);
@@ -49,7 +29,7 @@ export class FileUploadController {
         callback(new BadRequestException('Only images and PDF documents are allowed!'), false);
       },
       limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
+        fileSize: 4 * 1024 * 1024, // 4MB limit to fit within Vercel's 4.5MB serverless payload limit
       },
     }),
   )
@@ -57,21 +37,14 @@ export class FileUploadController {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
+    const base64 = file.buffer.toString('base64');
+    const dataUrl = `data:${file.mimetype};base64,${base64}`;
     return {
-      fileName: file.filename,
+      fileName: file.originalname,
       originalName: file.originalname,
-      filePath: `/api/uploads/${file.filename}`,
+      filePath: dataUrl,
       mimeType: file.mimetype,
       size: file.size,
     };
-  }
-
-  @Get(':filename')
-  serveFile(@Param('filename') filename: string, @Res() res: Response) {
-    const filePath = join(process.cwd(), 'uploads', filename);
-    if (!existsSync(filePath)) {
-      throw new NotFoundException('File not found');
-    }
-    return res.sendFile(filePath);
   }
 }

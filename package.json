@@ -1,0 +1,19 @@
+{
+  "name": "cashflow-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "postinstall": "npx prisma generate --schema=server/prisma/schema.prisma",
+    "vercel-build": "npx prisma generate --schema=server/prisma/schema.prisma && npm run build --workspace=client"
+  },
+  "devDependencies": {
+    "prisma": "^5.9.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  }
+}
