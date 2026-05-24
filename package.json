@@ -7,14 +7,11 @@
     "server"
   ],
   "scripts": {
-    "postinstall": "prisma generate --schema=server/prisma/schema.prisma",
-    "vercel-build": "prisma generate --schema=server/prisma/schema.prisma && npm run build --workspace=client",
+    "vercel-build": "npx --no-install prisma generate --schema=server/prisma/schema.prisma && npm run build --workspace=client",
     "build": "npm run vercel-build"
   },
-  "devDependencies": {
-    "prisma": "^5.22.0"
-  },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@prisma/client": "^5.22.0",
+    "prisma": "^5.22.0"
   }
 }
