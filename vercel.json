@@ -1,13 +1,13 @@
 {
   "version": 2,
   "installCommand": "npm install",
-  "buildCommand": "node node_modules/.bin/prisma generate --schema=./server/prisma/schema.prisma && cd client && npm run build",
+  "buildCommand": "cd server && npx prisma generate && npx nest build && cd ../client && npm run build",
   "outputDirectory": "client/dist",
   "functions": {
     "api/index.ts": {
       "memory": 1024,
       "maxDuration": 30,
-      "includeFiles": "server/**,node_modules/.prisma/**,node_modules/@prisma/client/**"
+      "includeFiles": "server/dist/**,server/prisma/**,node_modules/.prisma/**,node_modules/@prisma/client/**"
     }
   },
   "rewrites": [
