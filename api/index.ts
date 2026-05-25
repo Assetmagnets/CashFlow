@@ -1,14 +1,17 @@
 console.log('--- API INDEX MODULE LOAD START ---');
-import 'reflect-metadata';
-import express from 'express';
 
-let cachedServer: express.Express;
+let cachedServer: any;
 
-async function bootstrap(): Promise<express.Express> {
+async function bootstrap(): Promise<any> {
   if (cachedServer) {
     return cachedServer;
   }
 
+  // ALL imports must be dynamic to catch initialization errors!
+  await import('reflect-metadata');
+  const expressModule = await import('express');
+  const express = expressModule.default || expressModule;
+  
   const server = express();
 
   // Vercel rewrites preserve the original URL path
