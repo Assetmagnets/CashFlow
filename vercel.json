@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "cd server && npx prisma generate && cd ../client && npm run build",
   "outputDirectory": "client/dist",
   "functions": {
     "api/index.ts": {
