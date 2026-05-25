@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run prisma:generate --workspace=server && npm run build --workspace=client",
+  "installCommand": "npm install",
+  "buildCommand": "node node_modules/.bin/prisma generate --schema=./server/prisma/schema.prisma && cd client && npm run build",
   "outputDirectory": "client/dist",
   "functions": {
     "api/index.ts": {
