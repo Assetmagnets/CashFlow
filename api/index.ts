@@ -15,22 +15,28 @@ async function bootstrap(): Promise<express.Express> {
   }
 
   const server = express();
-  
-  // Normalize req.url for Vercel's routing where the /api prefix might be stripped
-  server.use((req: any, res: any, next: any) => {
+
+  // Vercel rewrites preserve the original URL path (e.g., /api/auth/login).
+  // NestJS globalPrefix is 'api', so routes are registered at /api/*.
+  // Ensure req.url always starts with /api so NestJS can match routes.
+  server.use((req: any, _res: any, next: any) => {
     if (req.url && !req.url.startsWith('/api')) {
       req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
     }
     next();
   });
 
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
-  
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
+    logger: ['error', 'warn'],
+  });
+
   app.setGlobalPrefix('api');
-  
+
   app.enableCors({
     origin: true,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
   app.useGlobalPipes(
@@ -50,6 +56,15 @@ async function bootstrap(): Promise<express.Express> {
 }
 
 export default async function handler(req: any, res: any) {
-  const server = await bootstrap();
-  return server(req, res);
+  try {
+    const server = await bootstrap();
+    return server(req, res);
+  } catch (error) {
+    console.error('Serverless bootstrap error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during initialization',
+      timestamp: new Date().toISOString(),
+    });
+  }
 }

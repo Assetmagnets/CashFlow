@@ -15,7 +15,10 @@ import { FileUploadModule } from './modules/file-upload/file-upload.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      ignoreEnvFile: process.env.VERCEL === '1',
+    }),
     PrismaModule,
     AuthModule,
     UsersModule,

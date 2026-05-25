@@ -10,7 +10,7 @@
     "server"
   ],
   "scripts": {
-    "vercel-build": "cd server && npm run prisma:generate && cd ../client && npm run build"
+    "vercel-build": "cd server && npx prisma generate && cd ../client && npm run build"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
