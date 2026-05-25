@@ -1,11 +1,6 @@
+console.log('--- API INDEX MODULE LOAD START ---');
 import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
-import { AppModule } from '../server/src/app.module';
-import { HttpExceptionFilter } from '../server/src/common/filters/http-exception.filter';
-import { ResponseInterceptor } from '../server/src/common/interceptors/response.interceptor';
 
 let cachedServer: express.Express;
 
@@ -16,9 +11,7 @@ async function bootstrap(): Promise<express.Express> {
 
   const server = express();
 
-  // Vercel rewrites preserve the original URL path (e.g., /api/auth/login).
-  // NestJS globalPrefix is 'api', so routes are registered at /api/*.
-  // Ensure req.url always starts with /api so NestJS can match routes.
+  // Vercel rewrites preserve the original URL path
   server.use((req: any, _res: any, next: any) => {
     if (req.url && !req.url.startsWith('/api')) {
       req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
@@ -26,8 +19,16 @@ async function bootstrap(): Promise<express.Express> {
     next();
   });
 
+  // Dynamically import NestJS modules to catch import errors
+  const { NestFactory } = await import('@nestjs/core');
+  const { ValidationPipe } = await import('@nestjs/common');
+  const { ExpressAdapter } = await import('@nestjs/platform-express');
+  const { AppModule } = await import('../server/src/app.module');
+  const { HttpExceptionFilter } = await import('../server/src/common/filters/http-exception.filter');
+  const { ResponseInterceptor } = await import('../server/src/common/interceptors/response.interceptor');
+
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
-    logger: ['error', 'warn'],
+    logger: ['error', 'warn', 'log'],
   });
 
   app.setGlobalPrefix('api');
@@ -59,11 +60,13 @@ export default async function handler(req: any, res: any) {
   try {
     const server = await bootstrap();
     return server(req, res);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Serverless bootstrap error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error during initialization',
+      error: error.message,
+      stack: error.stack,
       timestamp: new Date().toISOString(),
     });
   }
