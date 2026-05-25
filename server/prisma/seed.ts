@@ -77,6 +77,97 @@ async function main() {
   });
   console.log(`✅ 2 sites created: ${siteAlpha.name}, ${siteBeta.name}`);
 
+  // Create Mock Data so Dashboard shows charts immediately
+  console.log('📊 Generating realistic mock data for dashboard...');
+  
+  // 1. Send some cash to the sites
+  const dispatch1 = await prisma.cashDispatch.create({
+    data: {
+      amount: 500000,
+      carrierName: 'SafeTrans Logistics',
+      notes: 'Initial site setup funds',
+      status: 'RECEIVED',
+      siteId: siteAlpha.id,
+      createdBy: owner.id,
+    }
+  });
+
+  const dispatch2 = await prisma.cashDispatch.create({
+    data: {
+      amount: 250000,
+      carrierName: 'SecureCash India',
+      notes: 'Weekly operating expense',
+      status: 'PENDING_RECEIPT',
+      siteId: siteBeta.id,
+      createdBy: owner.id,
+    }
+  });
+  console.log('✅ Cash dispatches created');
+
+  // 2. Receive the cash at Site Alpha (Supervisor action)
+  const receipt1 = await prisma.cashReceipt.create({
+    data: {
+      amountReceived: 500000,
+      notes: 'Received in full. Counted by supervisor.',
+      dispatchId: dispatch1.id,
+      receivedBy: supervisor.id,
+    }
+  });
+  
+  // Update site ledger balance
+  await prisma.ledgerEntry.create({
+    data: {
+      amount: 500000,
+      type: 'CREDIT',
+      category: 'CASH_RECEIPT',
+      referenceId: receipt1.id,
+      balanceAfter: 500000,
+      notes: 'Cash received from owner dispatch',
+      siteId: siteAlpha.id,
+      createdBy: supervisor.id,
+    }
+  });
+
+  // 3. Add some expenses across different categories
+  const expenseData = [
+    { amount: 45000, categoryId: categories[0].id, vendor: 'Local Labour Union', note: 'Weekly wages' },
+    { amount: 120000, categoryId: categories[1].id, vendor: 'UltraTech Cement', note: '500 bags of cement' },
+    { amount: 15000, categoryId: categories[2].id, vendor: 'FastTrack Transport', note: 'Material delivery' },
+    { amount: 35000, categoryId: categories[4].id, vendor: 'JCB Rentals', note: 'Excavator rental 2 days' }
+  ];
+
+  let currentBalance = 500000;
+  
+  for (const exp of expenseData) {
+    const expense = await prisma.expense.create({
+      data: {
+        amount: exp.amount,
+        vendorName: exp.vendor,
+        notes: exp.note,
+        date: new Date(Date.now() - Math.floor(Math.random() * 10000000000)), // Random date in last 4 months
+        categoryId: exp.categoryId,
+        siteId: siteAlpha.id,
+        createdBy: supervisor.id,
+      }
+    });
+
+    currentBalance -= exp.amount;
+
+    await prisma.ledgerEntry.create({
+      data: {
+        amount: exp.amount,
+        type: 'DEBIT',
+        category: 'EXPENSE',
+        referenceId: expense.id,
+        balanceAfter: currentBalance,
+        notes: `Expense: ${exp.note}`,
+        siteId: siteAlpha.id,
+        createdBy: supervisor.id,
+      }
+    });
+  }
+  console.log('✅ Site expenses and ledger updated');
+
   console.log('\n🎉 Seed completed successfully!');
   console.log('---');
   console.log('Owner Login:      owner@cashflow.com / password123');
