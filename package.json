@@ -9,9 +9,7 @@
     "client",
     "server"
   ],
-  "scripts": {
-    "build": "npx prisma generate --schema=server/prisma/schema.prisma && npm run build --workspace=client"
-  },
+  "scripts": {},
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "prisma": "^5.22.0"
