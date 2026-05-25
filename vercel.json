@@ -4,14 +4,14 @@
   "buildCommand": "cd server && npx prisma generate && npx nest build && cd ../client && npm run build",
   "outputDirectory": "client/dist",
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "memory": 1024,
       "maxDuration": 30,
       "includeFiles": "server/dist/**,server/prisma/**,node_modules/.prisma/**,node_modules/@prisma/client/**"
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.ts" },
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
