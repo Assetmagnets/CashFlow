@@ -26,8 +26,8 @@ export class CashDispatchController {
 
   @Get('pending')
   @Roles(Role.SUPERVISOR)
-  findPending(@CurrentUser('sub') userId: string) {
-    return this.service.findPending(userId);
+  findPending(@CurrentUser('sub') userId: string, @Query('siteId') siteId?: string) {
+    return this.service.findPending(userId, siteId);
   }
 
   @Get(':id')

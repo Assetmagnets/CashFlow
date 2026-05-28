@@ -21,9 +21,9 @@ const SupervisorDashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
 
-  const fetchStats = async (siteId?: string) => {
+  const fetchStats = async (siteId?: string, isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const query = siteId ? `?siteId=${siteId}` : '';
       const data: any = await api.get(`/api/dashboard/supervisor${query}`);
       setStats(data);
@@ -33,17 +33,17 @@ const SupervisorDashboard: React.FC = () => {
     } catch (err: any) {
       setError(err.message || 'Failed to fetch site statistics.');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchStats(undefined, false);
   }, []);
 
   useEffect(() => {
     const handleUpdate = () => {
-      fetchStats(selectedSiteId);
+      fetchStats(selectedSiteId, true);
     };
 
     window.addEventListener('dashboard_update', handleUpdate);
@@ -149,14 +149,14 @@ const SupervisorDashboard: React.FC = () => {
           </Link>
           <Link
             to="/supervisor/expenses"
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-850 dark:hover:bg-slate-700 text-white dark:text-slate-100 font-bold text-sm shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all text-center whitespace-nowrap"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white dark:text-slate-100 font-bold text-sm shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all text-center whitespace-nowrap"
           >
             <Receipt className="w-4 h-4 flex-shrink-0" />
             Log New Expense
           </Link>
           <Link
             to="/supervisor/ledger"
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-850 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-center whitespace-nowrap"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-center whitespace-nowrap"
           >
             <BookOpen className="w-4 h-4 flex-shrink-0" />
             View Ledger
@@ -210,7 +210,7 @@ const SupervisorDashboard: React.FC = () => {
         <div className="lg:col-span-2 space-y-8">
           {/* Recent Dispatches */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850/50 pb-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 pb-4">
               <h3 className="font-bold text-slate-900 dark:text-white">Recent Dispatches to Site</h3>
               <Link to="/supervisor/receipts" className="text-xs font-bold text-amber-500 hover:text-amber-600 flex items-center gap-1">
                 View All
@@ -223,7 +223,7 @@ const SupervisorDashboard: React.FC = () => {
               ) : (
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="text-xs text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-850/50 pb-2">
+                    <tr className="text-xs text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800/50 pb-2">
                       <th className="py-2">Date / Carrier</th>
                       <th className="py-2">Amount</th>
                       <th className="py-2">Status</th>
@@ -231,7 +231,7 @@ const SupervisorDashboard: React.FC = () => {
                   </thead>
                   <tbody>
                     {stats.recentDispatches.map((disp) => (
-                      <tr key={disp.id} className="border-b border-slate-50 dark:border-slate-800/30 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-850/40">
+                      <tr key={disp.id} className="border-b border-slate-50 dark:border-slate-800/30 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="py-3">
                           <span className="font-bold text-slate-800 dark:text-white block">
                             {new Date(disp.dispatchDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
@@ -260,7 +260,7 @@ const SupervisorDashboard: React.FC = () => {
 
           {/* Recent Expenses */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850/50 pb-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 pb-4">
               <h3 className="font-bold text-slate-900 dark:text-white">Recent Logged Expenses</h3>
               <Link to="/supervisor/ledger" className="text-xs font-bold text-amber-500 hover:text-amber-600 flex items-center gap-1">
                 View Ledger
@@ -273,7 +273,7 @@ const SupervisorDashboard: React.FC = () => {
               ) : (
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="text-xs text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-850/50 pb-2">
+                    <tr className="text-xs text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800/50 pb-2">
                       <th className="py-2">Date / Vendor</th>
                       <th className="py-2">Category</th>
                       <th className="py-2">Amount</th>
@@ -281,7 +281,7 @@ const SupervisorDashboard: React.FC = () => {
                   </thead>
                   <tbody>
                     {stats.recentExpenses.map((exp) => (
-                      <tr key={exp.id} className="border-b border-slate-50 dark:border-slate-800/30 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-850/40">
+                      <tr key={exp.id} className="border-b border-slate-50 dark:border-slate-800/30 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="py-3">
                           <span className="font-bold text-slate-800 dark:text-white block">
                             {new Date(exp.expenseDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
@@ -289,11 +289,11 @@ const SupervisorDashboard: React.FC = () => {
                           <span className="text-[11px] text-slate-400 truncate max-w-[120px] block">{exp.vendorName}</span>
                         </td>
                         <td className="py-3">
-                          <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-400 rounded-md">
+                          <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md">
                             {exp.category?.name}
                           </span>
                         </td>
-                        <td className="py-3 font-semibold text-rose-600 dark:text-rose-455">
+                        <td className="py-3 font-semibold text-rose-600 dark:text-rose-400">
                           -{formatCurrency(Number(exp.amount))}
                         </td>
                       </tr>
@@ -307,11 +307,11 @@ const SupervisorDashboard: React.FC = () => {
 
         {/* Right Side: Category Allocations */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-6">
-          <h3 className="font-bold text-slate-850 dark:text-white flex items-center gap-2">
+          <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
             <Layers className="text-amber-500 w-5 h-5" />
             Site Category Spending
           </h3>
-          <div className="h-64 w-full relative flex flex-col justify-center border-b border-slate-100 dark:border-slate-850/30 pb-6">
+          <div className="h-64 w-full relative flex flex-col justify-center border-b border-slate-100 dark:border-slate-800/30 pb-6">
             {stats.categoryExpenses.length === 0 ? (
               <div className="h-full flex items-center justify-center text-slate-400 text-sm">No category allocations available.</div>
             ) : (
@@ -330,7 +330,8 @@ const SupervisorDashboard: React.FC = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
+                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.2)' }}
+                    itemStyle={{ color: '#e2e8f0', fontWeight: 600 }}
                     formatter={(v: any) => `₹${Number(v).toLocaleString('en-IN')}`}
                   />
                 </PieChart>
@@ -343,7 +344,7 @@ const SupervisorDashboard: React.FC = () => {
               <p className="text-slate-400 text-xs text-center py-4">Create your first expense to see analysis.</p>
             ) : (
               stats.categoryExpenses.map((cat, idx) => (
-                <div key={cat.category} className="flex justify-between items-center bg-slate-50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100/50 dark:border-slate-850/50">
+                <div key={cat.category} className="flex justify-between items-center bg-slate-50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100/50 dark:border-slate-800/50">
                   <div className="flex items-center gap-2.5">
                     <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{cat.category}</span>

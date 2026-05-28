@@ -72,7 +72,8 @@ const SupervisorAddExpense: React.FC = () => {
     try {
       setLoadingExpenses(true);
       setErrorMsg('');
-      const res: any = await api.get('/api/expenses?limit=100');
+      const queryParams = siteId ? `&siteId=${siteId}` : '';
+      const res: any = await api.get(`/api/expenses?limit=100${queryParams}`);
       setExpenses(res.data || res || []);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to fetch expenses.');

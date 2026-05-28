@@ -75,12 +75,20 @@ export class CashDispatchService {
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async findPending(supervisorId: string) {
+  async findPending(supervisorId: string, siteId?: string) {
     const sites = await this.prisma.site.findMany({
       where: { supervisorId },
       select: { id: true },
     });
-    const siteIds = sites.map((s) => s.id);
+    let siteIds = sites.map((s) => s.id);
+
+    // If a specific siteId is requested, filter the allowed siteIds
+    if (siteId && siteIds.includes(siteId)) {
+      siteIds = [siteId];
+    } else if (siteId) {
+      // Requested siteId is not assigned to this supervisor
+      return [];
+    }
 
     return this.prisma.cashDispatch.findMany({
       where: {

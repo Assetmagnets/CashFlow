@@ -32,23 +32,23 @@ const OwnerDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchStats = async () => {
+  const fetchStats = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const data: any = await api.get('/api/dashboard/owner');
       setStats(data);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch dashboard metrics.');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchStats(false);
 
     const handleUpdate = () => {
-      fetchStats();
+      fetchStats(true);
     };
 
     window.addEventListener('dashboard_update', handleUpdate);
@@ -155,7 +155,7 @@ const OwnerDashboard: React.FC = () => {
         {/* Monthly Spending Trend AreaChart */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800 lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-850 dark:text-white flex items-center gap-2">
+            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
               <TrendingUp className="text-amber-500 w-5 h-5" />
               Cash Outflow Trend (Past 6 Months)
             </h3>
@@ -176,8 +176,9 @@ const OwnerDashboard: React.FC = () => {
                   <XAxis dataKey="month" stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" tickFormatter={(v) => `₹${v / 1000}k`} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                    labelStyle={{ color: '#fff', fontWeight: 'bold' }}
+                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.2)' }}
+                    itemStyle={{ color: '#e2e8f0', fontWeight: 600 }}
+                    labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: '4px' }}
                     formatter={(v: any) => [`₹${Number(v).toLocaleString('en-IN')}`, 'Disbursed']}
                   />
                   <Area type="monotone" dataKey="amount" stroke="#f59e0b" strokeWidth={3} fillOpacity={1} fill="url(#colorAmt)" />
@@ -189,7 +190,7 @@ const OwnerDashboard: React.FC = () => {
 
         {/* Category breakdown Donut Chart */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-4">
-          <h3 className="font-bold text-slate-850 dark:text-white flex items-center gap-2">
+          <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
             <Layers className="text-amber-500 w-5 h-5" />
             Category-wise Allocation
           </h3>
@@ -213,7 +214,8 @@ const OwnerDashboard: React.FC = () => {
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
+                      contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.2)' }}
+                      itemStyle={{ color: '#e2e8f0', fontWeight: 600 }}
                       formatter={(v: any) => `₹${Number(v).toLocaleString('en-IN')}`}
                     />
                   </PieChart>
@@ -223,7 +225,7 @@ const OwnerDashboard: React.FC = () => {
                   {stats.categoryExpenses.map((cat, idx) => (
                     <div key={cat.category} className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
-                      <span className="text-[11px] font-semibold text-slate-650 dark:text-slate-400 truncate">{cat.category}</span>
+                      <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 truncate">{cat.category}</span>
                     </div>
                   ))}
                 </div>
@@ -237,7 +239,7 @@ const OwnerDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Dispatches */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850/50 pb-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 pb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Recent Cash Dispatches</h3>
             <ArrowRight className="w-4 h-4 text-slate-400" />
           </div>
@@ -247,7 +249,7 @@ const OwnerDashboard: React.FC = () => {
             ) : (
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="text-xs text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-850/50 pb-2">
+                  <tr className="text-xs text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800/50 pb-2">
                     <th className="py-2">Site / Carrier</th>
                     <th className="py-2">Amount</th>
                     <th className="py-2">Status</th>
@@ -255,7 +257,7 @@ const OwnerDashboard: React.FC = () => {
                 </thead>
                 <tbody>
                   {stats.recentDispatches.map((disp) => (
-                    <tr key={disp.id} className="border-b border-slate-50 dark:border-slate-800/30 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-850/40">
+                    <tr key={disp.id} className="border-b border-slate-50 dark:border-slate-800/30 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="py-3">
                         <span className="font-bold text-slate-800 dark:text-white block">{disp.site?.name}</span>
                         <span className="text-[11px] text-slate-400">{disp.carrierName}</span>
@@ -282,7 +284,7 @@ const OwnerDashboard: React.FC = () => {
 
         {/* Recent Expenses */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850/50 pb-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 pb-4">
             <h3 className="font-bold text-slate-900 dark:text-white">Recent Expenses</h3>
             <ArrowRight className="w-4 h-4 text-slate-400" />
           </div>
@@ -292,7 +294,7 @@ const OwnerDashboard: React.FC = () => {
             ) : (
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="text-xs text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-850/50 pb-2">
+                  <tr className="text-xs text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800/50 pb-2">
                     <th className="py-2">Site / Vendor</th>
                     <th className="py-2">Category</th>
                     <th className="py-2">Amount</th>
@@ -300,7 +302,7 @@ const OwnerDashboard: React.FC = () => {
                 </thead>
                 <tbody>
                   {stats.recentExpenses.map((exp) => (
-                    <tr key={exp.id} className="border-b border-slate-50 dark:border-slate-800/30 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-850/40">
+                    <tr key={exp.id} className="border-b border-slate-50 dark:border-slate-800/30 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="py-3">
                         <span className="font-bold text-slate-800 dark:text-white block">{exp.site?.name}</span>
                         <span className="text-[11px] text-slate-400">{exp.vendorName}</span>

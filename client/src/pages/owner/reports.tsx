@@ -67,22 +67,22 @@ const OwnerReports: React.FC = () => {
       // Format Site Expenses
       const formattedSiteExpenses = (siteExpensesRes || []).map((s: any) => ({
         name: s.siteName,
-        amount: Number(s.totalSpent),
+        amount: Number(s.totalExpenses),
       }));
       setSiteExpenses(formattedSiteExpenses);
 
       // Format Category Expenses
       const formattedCategoryExpenses = (categoryExpensesRes || []).map((c: any) => ({
         name: c.categoryName,
-        value: Number(c.totalSpent),
+        value: Number(c.totalExpenses),
       }));
       setCategoryExpenses(formattedCategoryExpenses);
 
       // Format Cash Flow
       const formattedCashFlow = (cashFlowRes || []).map((cf: any) => ({
-        date: new Date(cf.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-        credit: Number(cf.totalCredit),
-        debit: Number(cf.totalDebit),
+        date: new Date(cf.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+        credit: Number(cf.credit),
+        debit: Number(cf.debit),
       }));
       setCashFlow(formattedCashFlow);
     } catch (err: any) {

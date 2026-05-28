@@ -10,7 +10,9 @@ import {
   Loader2,
   X,
   BookOpen,
+  Building2,
 } from 'lucide-react';
+import type { Site } from '../../types';
 
 const SupervisorReceipts: React.FC = () => {
   const [pendingDispatches, setPendingDispatches] = useState<CashDispatch[]>([]);
@@ -25,13 +27,40 @@ const SupervisorReceipts: React.FC = () => {
   const [receivedAmount, setReceivedAmount] = useState<number>(0);
   const [remarks, setRemarks] = useState('');
 
-  const fetchData = async () => {
+  const [sites, setSites] = useState<Site[]>([]);
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('');
+
+  const fetchSitesAndData = async () => {
     try {
       setLoading(true);
       setErrorMsg('');
+      const sitesData: any = await api.get('/api/sites');
+      const activeSites = (sitesData.data || sitesData || []).filter((s: Site) => s.status === 'ACTIVE');
+      setSites(activeSites);
+
+      if (activeSites.length > 0) {
+        const firstSiteId = activeSites[0].id;
+        setSelectedSiteId(firstSiteId);
+        await fetchData(firstSiteId);
+      } else {
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to fetch sites.');
+      setLoading(false);
+    }
+  };
+
+  const fetchData = async (siteId: string) => {
+    if (!siteId) return;
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      const query = `?siteId=${siteId}`;
+      const queryLimit = `?siteId=${siteId}&limit=50`;
       const [pendingData, historyData]: any = await Promise.all([
-        api.get('/api/dispatches/pending'),
-        api.get('/api/receipts?limit=50'),
+        api.get(`/api/dispatches/pending${query}`),
+        api.get(`/api/receipts${queryLimit}`),
       ]);
       setPendingDispatches(pendingData || []);
       setReceiptHistory(historyData.data || historyData || []);
@@ -43,8 +72,14 @@ const SupervisorReceipts: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchSitesAndData();
   }, []);
+
+  useEffect(() => {
+    if (selectedSiteId) {
+      fetchData(selectedSiteId);
+    }
+  }, [selectedSiteId]);
 
   const openConfirmModal = (dispatch: CashDispatch) => {
     setSelectedDispatch(dispatch);
@@ -78,7 +113,9 @@ const SupervisorReceipts: React.FC = () => {
 
       setSuccessMsg('Cash receipt confirmed successfully!');
       setSelectedDispatch(null);
-      fetchData();
+      if (selectedSiteId) {
+        fetchData(selectedSiteId);
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to confirm receipt.');
     } finally {
@@ -105,12 +142,33 @@ const SupervisorReceipts: React.FC = () => {
             Audit and verify incoming cash dispatches sent from the owner to your site.
           </p>
         </div>
-        <button
-          onClick={fetchData}
-          className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
-        >
-          Refresh Feed
-        </button>
+        
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Site Switcher */}
+          {sites.length > 1 && (
+            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 px-3 rounded-xl border border-slate-200 dark:border-slate-800">
+              <Building2 className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <select
+                value={selectedSiteId}
+                onChange={(e) => setSelectedSiteId(e.target.value)}
+                className="w-full sm:w-auto py-2.5 bg-transparent text-slate-900 dark:text-white focus:outline-none text-sm font-semibold cursor-pointer max-w-[200px] truncate"
+              >
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button
+            onClick={() => selectedSiteId && fetchData(selectedSiteId)}
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+          >
+            Refresh Feed
+          </button>
+        </div>
       </div>
 
       {successMsg && (

@@ -59,25 +59,25 @@ export class DashboardService {
       }),
     ]);
 
-    // Format category chart data
+    // Format category chart data — convert Decimal to Number for Recharts
     const categories = await this.prisma.expenseCategory.findMany();
     const categoryChartData = categoryExpensesRaw.map((item) => {
       const cat = categories.find((c) => c.id === item.categoryId);
       return {
         category: cat ? cat.name : 'Unknown',
-        amount: item._sum.amount || new Decimal(0),
+        amount: Number(item._sum.amount || 0),
       };
     });
 
-    // Format monthly chart data (past 6 months)
-    const monthlyExpensesMap: Record<string, Decimal> = {};
+    // Format monthly chart data (past 6 months) — convert Decimal to Number
+    const monthlyExpensesMap: Record<string, number> = {};
     monthlyExpensesRaw.forEach((exp) => {
       const date = new Date(exp.expenseDate);
       const key = date.toLocaleString('default', { month: 'short', year: '2-digit' });
       if (!monthlyExpensesMap[key]) {
-        monthlyExpensesMap[key] = new Decimal(0);
+        monthlyExpensesMap[key] = 0;
       }
-      monthlyExpensesMap[key] = monthlyExpensesMap[key].plus(exp.amount);
+      monthlyExpensesMap[key] += Number(exp.amount);
     });
 
     const monthlyChartData = Object.keys(monthlyExpensesMap).map((key) => ({
@@ -87,9 +87,9 @@ export class DashboardService {
 
     return {
       activeSitesCount,
-      totalCashAtSites: totalCashAtSitesAgg._sum.currentBalance || new Decimal(0),
-      totalCashInTransit: totalCashInTransitAgg._sum.amount || new Decimal(0),
-      totalExpenses: totalExpensesAgg._sum.amount || new Decimal(0),
+      totalCashAtSites: Number(totalCashAtSitesAgg._sum.currentBalance || 0),
+      totalCashInTransit: Number(totalCashInTransitAgg._sum.amount || 0),
+      totalExpenses: Number(totalExpensesAgg._sum.amount || 0),
       recentDispatches,
       recentExpenses,
       categoryExpenses: categoryChartData,
@@ -162,13 +162,13 @@ export class DashboardService {
       }),
     ]);
 
-    // Format category chart data
+    // Format category chart data — convert Decimal to Number for Recharts
     const categories = await this.prisma.expenseCategory.findMany();
     const categoryChartData = categoryExpensesRaw.map((item) => {
       const cat = categories.find((c) => c.id === item.categoryId);
       return {
         category: cat ? cat.name : 'Unknown',
-        amount: item._sum.amount || new Decimal(0),
+        amount: Number(item._sum.amount || 0),
       };
     });
 
@@ -178,9 +178,9 @@ export class DashboardService {
       siteName: site.name,
       siteCode: site.code,
       siteLocation: site.location,
-      currentBalance: site.currentBalance,
-      totalReceived: totalReceivedAgg._sum.credit || new Decimal(0),
-      totalSpent: totalSpentAgg._sum.debit || new Decimal(0),
+      currentBalance: Number(site.currentBalance || 0),
+      totalReceived: Number(totalReceivedAgg._sum.credit || 0),
+      totalSpent: Number(totalSpentAgg._sum.debit || 0),
       assignedSites,
       recentDispatches,
       recentExpenses,
