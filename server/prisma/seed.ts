@@ -44,6 +44,18 @@ async function main() {
   });
   console.log(`✅ Supervisor created: ${supervisor.email}`);
 
+  // Create Middleman
+  const middleman = await prisma.user.create({
+    data: {
+      email: 'middleman@cashflow.com',
+      name: 'Suresh Transport',
+      password: hashedPassword,
+      phone: '+91-9876543212',
+      role: Role.MIDDLEMAN,
+    },
+  });
+  console.log(`✅ Middleman created: ${middleman.email}`);
+
   // Create Expense Categories
   const categories = await Promise.all(
     [
@@ -288,6 +300,7 @@ async function main() {
   console.log('---');
   console.log('Owner Login:      owner@cashflow.com / password123');
   console.log('Supervisor Login: supervisor@cashflow.com / password123');
+  console.log('Middleman Login:  middleman@cashflow.com / password123');
 }
 
 main()

@@ -20,4 +20,9 @@ export class CreateDispatchDto {
 
   @IsDateString()
   dispatchDate: string;
+
+  @IsOptional()
+  @IsString()
+  middlemanId?: string;
 }
+

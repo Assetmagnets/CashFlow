@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -12,6 +14,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { FileUploadModule } from './modules/file-upload/file-upload.module';
+import { MiddlemanModule } from './modules/middleman/middleman.module';
+import { SiteTransferModule } from './modules/site-transfer/site-transfer.module';
 
 @Module({
   imports: [
@@ -19,6 +23,10 @@ import { FileUploadModule } from './modules/file-upload/file-upload.module';
       isGlobal: true,
       ignoreEnvFile: process.env.VERCEL === '1',
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100,
+    }]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -31,6 +39,15 @@ import { FileUploadModule } from './modules/file-upload/file-upload.module';
     ReportsModule,
     NotificationsModule,
     FileUploadModule,
+    MiddlemanModule,
+    SiteTransferModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
+

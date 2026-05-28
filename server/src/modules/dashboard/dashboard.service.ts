@@ -187,4 +187,54 @@ export class DashboardService {
       categoryExpenses: categoryChartData,
     };
   }
+
+  async getMiddlemanStats(middlemanId: string) {
+    const [
+      pendingCount,
+      totalDispatches,
+      totalCommissionAgg,
+      totalForwardedAgg,
+    ] = await Promise.all([
+      this.prisma.cashDispatch.count({
+        where: { middlemanId, status: 'PENDING_MIDDLEMAN' },
+      }),
+      this.prisma.cashDispatch.count({
+        where: { middlemanId },
+      }),
+      this.prisma.cashDispatch.aggregate({
+        where: {
+          middlemanId,
+          status: { not: 'PENDING_MIDDLEMAN' },
+        },
+        _sum: { commissionAmount: true },
+      }),
+      this.prisma.cashDispatch.aggregate({
+        where: {
+          middlemanId,
+          status: { not: 'PENDING_MIDDLEMAN' },
+        },
+        _sum: { amountAfterCommission: true },
+      }),
+    ]);
+
+    const recentDispatches = await this.prisma.cashDispatch.findMany({
+      where: { middlemanId },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        site: { select: { id: true, name: true, code: true } },
+        createdBy: { select: { id: true, name: true } },
+        receipt: { select: { receivedAmount: true, receivedAt: true } },
+      },
+    });
+
+    return {
+      pendingCount,
+      totalProcessed: totalDispatches - pendingCount,
+      totalCommissionEarned: Number(totalCommissionAgg._sum.commissionAmount || 0),
+      totalAmountForwarded: Number(totalForwardedAgg._sum.amountAfterCommission || 0),
+      recentDispatches,
+    };
+  }
 }
+

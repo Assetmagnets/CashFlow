@@ -97,8 +97,15 @@ export class ExpensesService {
         throw new BadRequestException(`Insufficient balance at site. Site balance: ₹${site.currentBalance}, Expense amount: ₹${expense.amount}`);
       }
 
-      // 1. Calculate new balance
-      const newBalance = site.currentBalance.minus(expense.amount);
+      // 1. Update site balance atomically
+      const updatedSite = await tx.site.update({
+        where: { id: expense.siteId },
+        data: { currentBalance: { decrement: expense.amount } },
+      });
+
+      if (updatedSite.currentBalance.lessThan(0)) {
+        throw new BadRequestException(`Insufficient balance at site due to concurrent transactions. Expense amount: ₹${expense.amount}`);
+      }
 
       // 2. Create ledger entry
       const ledger = await tx.ledgerEntry.create({
@@ -109,15 +116,9 @@ export class ExpensesService {
           referenceId: expense.id,
           credit: 0,
           debit: expense.amount,
-          balanceAfter: newBalance,
+          balanceAfter: updatedSite.currentBalance,
           description: `Expense (Approved): ${expense.category.name} - ${expense.vendorName} (${expense.description || ''})`,
         },
-      });
-
-      // 3. Update site balance
-      await tx.site.update({
-        where: { id: expense.siteId },
-        data: { currentBalance: newBalance },
       });
 
       // 4. Update expense status to APPROVED
@@ -139,7 +140,7 @@ export class ExpensesService {
       });
 
       // 6. Check low balance threshold (₹5000)
-      if (newBalance.lessThan(5000)) {
+      if (updatedSite.currentBalance.lessThan(5000)) {
         const ownersAndSupervisors = await tx.user.findMany({
           where: {
             OR: [
@@ -154,7 +155,7 @@ export class ExpensesService {
             data: {
               userId: user.id,
               title: 'Low Balance Alert',
-              message: `Site ${site.name} balance has dropped to ₹${newBalance}. Please dispatch cash soon.`,
+              message: `Site ${site.name} balance has dropped to ₹${updatedSite.currentBalance}. Please dispatch cash soon.`,
               type: 'LOW_BALANCE',
               referenceType: 'Site',
               referenceId: site.id,

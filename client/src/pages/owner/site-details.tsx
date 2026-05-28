@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Site, CashDispatch, Expense, LedgerEntry } from '../../types';
+import { usePagination } from '../../hooks/usePagination';
+import { Pagination } from '../../components/shared/Pagination';
 import {
   ArrowLeft,
   MapPin,
@@ -26,6 +28,16 @@ const OwnerSiteDetails: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   
   const [activeTab, setActiveTab] = useState<'DISPATCH' | 'EXPENSE' | 'LEDGER'>('DISPATCH');
+
+  // Pagination for Dispatches
+  const dispatchesPagination = usePagination(dispatches, 10);
+  
+  // Pagination for Expenses
+  const approvedExpenses = expenses.filter((e) => e.status === 'APPROVED');
+  const expensesPagination = usePagination(approvedExpenses, 10);
+  
+  // Pagination for Ledger
+  const ledgerPagination = usePagination(ledger, 10);
 
   const fetchSiteDetails = async () => {
     if (!id) return;
@@ -286,7 +298,7 @@ const OwnerSiteDetails: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  dispatches.map((d) => (
+                  dispatchesPagination.paginatedData.map((d) => (
                     <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
                       <td className="px-6 py-4 text-xs text-slate-450 font-semibold">{formatDate(d.dispatchDate)}</td>
                       <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200">{d.carrierName}</td>
@@ -313,6 +325,15 @@ const OwnerSiteDetails: React.FC = () => {
                 )}
               </tbody>
             </table>
+            {dispatches.length > 0 && (
+              <Pagination
+                currentPage={dispatchesPagination.currentPage}
+                totalPages={dispatchesPagination.totalPages}
+                onPageChange={dispatchesPagination.goToPage}
+                totalItems={dispatchesPagination.totalItems}
+                itemsPerPage={10}
+              />
+            )}
           </div>
         )}
 
@@ -336,9 +357,7 @@ const OwnerSiteDetails: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  expenses
-                    .filter((e) => e.status === 'APPROVED')
-                    .map((e) => (
+                  expensesPagination.paginatedData.map((e) => (
                       <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
                         <td className="px-6 py-4 text-xs text-slate-450 font-semibold">{formatDate(e.expenseDate)}</td>
                         <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200">{e.vendorName}</td>
@@ -352,6 +371,15 @@ const OwnerSiteDetails: React.FC = () => {
                 )}
               </tbody>
             </table>
+            {approvedExpenses.length > 0 && (
+              <Pagination
+                currentPage={expensesPagination.currentPage}
+                totalPages={expensesPagination.totalPages}
+                onPageChange={expensesPagination.goToPage}
+                totalItems={expensesPagination.totalItems}
+                itemsPerPage={10}
+              />
+            )}
           </div>
         )}
 
@@ -375,7 +403,7 @@ const OwnerSiteDetails: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  ledger.map((entry) => {
+                  ledgerPagination.paginatedData.map((entry) => {
                     const isCredit = Number(entry.credit) > 0;
                     const isDebit = Number(entry.debit) > 0;
                     return (
@@ -397,6 +425,15 @@ const OwnerSiteDetails: React.FC = () => {
                 )}
               </tbody>
             </table>
+            {ledger.length > 0 && (
+              <Pagination
+                currentPage={ledgerPagination.currentPage}
+                totalPages={ledgerPagination.totalPages}
+                onPageChange={ledgerPagination.goToPage}
+                totalItems={ledgerPagination.totalItems}
+                itemsPerPage={10}
+              />
+            )}
           </div>
         )}
       </div>

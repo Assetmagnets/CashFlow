@@ -42,8 +42,15 @@ export class UsersService {
 
   async findSupervisors() {
     return this.prisma.user.findMany({
-      where: { role: Role.SUPERVISOR, isActive: true },
-      select: { id: true, name: true, email: true, phone: true },
+      where: { role: Role.SUPERVISOR },
+      select: { id: true, name: true, email: true, phone: true, isActive: true },
+    });
+  }
+
+  async findMiddlemen() {
+    return this.prisma.user.findMany({
+      where: { role: Role.MIDDLEMAN },
+      select: { id: true, name: true, email: true, phone: true, isActive: true },
     });
   }
 
@@ -79,5 +86,18 @@ export class UsersService {
         role: true, isActive: true, createdAt: true, updatedAt: true,
       },
     });
+  }
+
+  async delete(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+
+    try {
+      await this.prisma.user.delete({ where: { id } });
+      return { success: true, message: 'User deleted successfully' };
+    } catch (error) {
+      // If there's a foreign key constraint error, we should throw a clear message
+      throw new ConflictException('Cannot delete user. They have associated records (e.g., dispatches, expenses). Please deactivate them instead.');
+    }
   }
 }

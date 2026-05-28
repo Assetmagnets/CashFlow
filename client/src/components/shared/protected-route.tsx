@@ -17,8 +17,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // If owner goes to supervisor dashboard or vice-versa, redirect appropriately
-    return <Navigate to={user.role === 'OWNER' ? '/owner/dashboard' : '/supervisor/dashboard'} replace />;
+    // Redirect to the correct dashboard for the user's actual role
+    const dashboardMap: Record<string, string> = {
+      OWNER: '/owner/dashboard',
+      SUPERVISOR: '/supervisor/dashboard',
+      MIDDLEMAN: '/middleman/dashboard',
+    };
+    return <Navigate to={dashboardMap[user.role] || '/login'} replace />;
   }
 
   return <>{children}</>;

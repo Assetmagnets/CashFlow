@@ -11,6 +11,7 @@ datasource db {
 enum Role {
   OWNER
   SUPERVISOR
+  MIDDLEMAN
 }
 
 enum SiteStatus {
@@ -19,6 +20,7 @@ enum SiteStatus {
 }
 
 enum DispatchStatus {
+  PENDING_MIDDLEMAN
   PENDING_RECEIPT
   RECEIVED
   PARTIAL_RECEIVED
@@ -35,6 +37,14 @@ enum TransactionType {
   CASH_RECEIVED
   EXPENSE
   ADJUSTMENT
+  SITE_TRANSFER_IN
+  SITE_TRANSFER_OUT
+}
+
+enum SiteTransferStatus {
+  PENDING
+  RECEIVED
+  REJECTED
 }
 
 enum NotificationType {
@@ -45,6 +55,9 @@ enum NotificationType {
   EXPENSE_ADDED
   EXPENSE_APPROVED
   EXPENSE_REJECTED
+  MIDDLEMAN_FORWARDED
+  TRANSFER_CREATED
+  TRANSFER_RECEIVED
 }
 
 
@@ -59,13 +72,16 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  supervisedSites Site[]
-  cashDispatches  CashDispatch[]
-  cashReceipts    CashReceipt[]
-  expenses        Expense[]
-  notifications   Notification[]
-  attachments     Attachment[]
-  auditLogs       AuditLog[]
+  supervisedSites        Site[]
+  cashDispatches         CashDispatch[]
+  cashReceipts           CashReceipt[]
+  expenses               Expense[]
+  notifications          Notification[]
+  attachments            Attachment[]
+  auditLogs              AuditLog[]
+  middlemanDispatches    CashDispatch[]   @relation("MiddlemanDispatches")
+  initiatedTransfers     SiteTransfer[]   @relation("TransferInitiator")
+  receivedTransfers      SiteTransfer[]   @relation("TransferReceiver")
 
   @@map("users")
 }
@@ -81,11 +97,13 @@ model Site {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  supervisor     User?          @relation(fields: [supervisorId], references: [id])
-  cashDispatches CashDispatch[]
-  cashReceipts   CashReceipt[]
-  expenses       Expense[]
-  ledgerEntries  LedgerEntry[]
+  supervisor      User?          @relation(fields: [supervisorId], references: [id])
+  cashDispatches  CashDispatch[]
+  cashReceipts    CashReceipt[]
+  expenses        Expense[]
+  ledgerEntries   LedgerEntry[]
+  outgoingTransfers SiteTransfer[] @relation("TransferFromSite")
+  incomingTransfers SiteTransfer[] @relation("TransferToSite")
 
   @@index([supervisorId])
   @@index([status])
@@ -93,25 +111,54 @@ model Site {
 }
 
 model CashDispatch {
-  id           String         @id @default(uuid())
-  siteId       String
-  amount       Decimal        @db.Decimal(15, 2)
-  carrierName  String
-  purpose      String
-  notes        String?
-  dispatchDate DateTime
-  status       DispatchStatus @default(PENDING_RECEIPT)
-  createdById  String
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id                   String         @id @default(uuid())
+  siteId               String
+  amount               Decimal        @db.Decimal(15, 2)
+  carrierName          String
+  purpose              String
+  notes                String?
+  dispatchDate         DateTime
+  status               DispatchStatus @default(PENDING_RECEIPT)
+  createdById          String
+  middlemanId          String?
+  commissionAmount     Decimal        @default(0) @db.Decimal(15, 2)
+  amountAfterCommission Decimal?      @db.Decimal(15, 2)
+  middlemanProcessedAt DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   site      Site          @relation(fields: [siteId], references: [id])
   createdBy User          @relation(fields: [createdById], references: [id])
+  middleman User?         @relation("MiddlemanDispatches", fields: [middlemanId], references: [id])
   receipt   CashReceipt?
 
   @@index([siteId, status])
   @@index([createdById])
+  @@index([middlemanId])
   @@map("cash_dispatches")
+}
+
+model SiteTransfer {
+  id            String             @id @default(uuid())
+  fromSiteId    String
+  toSiteId      String
+  amount        Decimal            @db.Decimal(15, 2)
+  notes         String?
+  status        SiteTransferStatus @default(PENDING)
+  initiatedById String
+  receivedById  String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  fromSite    Site  @relation("TransferFromSite", fields: [fromSiteId], references: [id])
+  toSite      Site  @relation("TransferToSite", fields: [toSiteId], references: [id])
+  initiatedBy User  @relation("TransferInitiator", fields: [initiatedById], references: [id])
+  receivedBy  User? @relation("TransferReceiver", fields: [receivedById], references: [id])
+
+  @@index([fromSiteId])
+  @@index([toSiteId])
+  @@index([status])
+  @@map("site_transfers")
 }
 
 model CashReceipt {

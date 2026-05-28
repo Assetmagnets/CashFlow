@@ -15,20 +15,53 @@ export class CashDispatchService {
     });
     if (!site) throw new NotFoundException('Site not found');
 
+    // If middleman is specified, validate and set initial status
+    const hasMiddleman = !!dto.middlemanId;
+    let initialStatus: DispatchStatus = DispatchStatus.PENDING_RECEIPT;
+
+    if (hasMiddleman) {
+      const middleman = await this.prisma.user.findUnique({
+        where: { id: dto.middlemanId },
+      });
+      if (!middleman || middleman.role !== 'MIDDLEMAN' || !middleman.isActive) {
+        throw new NotFoundException('Invalid or inactive middleman');
+      }
+      initialStatus = DispatchStatus.PENDING_MIDDLEMAN;
+    }
+
     const dispatch = await this.prisma.cashDispatch.create({
       data: {
-        ...dto,
+        siteId: dto.siteId,
+        amount: dto.amount,
+        carrierName: dto.carrierName,
+        purpose: dto.purpose,
+        notes: dto.notes,
         dispatchDate: new Date(dto.dispatchDate),
+        status: initialStatus,
         createdById: userId,
+        middlemanId: dto.middlemanId || null,
       },
       include: {
         site: { select: { id: true, name: true, code: true } },
         createdBy: { select: { id: true, name: true } },
+        middleman: { select: { id: true, name: true } },
       },
     });
 
-    // Create notification for supervisor
-    if (site.supervisorId) {
+    if (hasMiddleman && dto.middlemanId) {
+      // Notify the middleman about the new dispatch
+      await this.prisma.notification.create({
+        data: {
+          userId: dto.middlemanId,
+          title: 'New Cash Dispatch Assigned',
+          message: `₹${dto.amount} dispatched to ${site.name} via ${dto.carrierName} — awaiting your processing`,
+          type: 'DISPATCH_CREATED',
+          referenceType: 'CashDispatch',
+          referenceId: dispatch.id,
+        },
+      });
+    } else if (site.supervisorId) {
+      // Direct dispatch — notify supervisor
       await this.prisma.notification.create({
         data: {
           userId: site.supervisorId,
@@ -65,6 +98,7 @@ export class CashDispatchService {
         include: {
           site: { select: { id: true, name: true, code: true } },
           createdBy: { select: { id: true, name: true } },
+          middleman: { select: { id: true, name: true } },
           receipt: true,
         },
         orderBy: { createdAt: 'desc' },
@@ -98,6 +132,7 @@ export class CashDispatchService {
       include: {
         site: { select: { id: true, name: true, code: true } },
         createdBy: { select: { id: true, name: true } },
+        middleman: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -109,6 +144,7 @@ export class CashDispatchService {
       include: {
         site: true,
         createdBy: { select: { id: true, name: true, email: true } },
+        middleman: { select: { id: true, name: true, email: true } },
         receipt: { include: { receivedBy: { select: { id: true, name: true } } } },
       },
     });

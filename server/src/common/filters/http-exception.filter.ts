@@ -24,7 +24,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
           ? exResponse
           : (exResponse as any).message || exception.message;
     } else if (exception instanceof Error) {
-      message = exception.message;
+      console.error('[Unhandled Exception]:', exception);
+      message = 'An unexpected internal server error occurred';
     }
 
     response.status(status).json({

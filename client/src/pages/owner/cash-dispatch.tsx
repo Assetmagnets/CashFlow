@@ -1,21 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../lib/api';
-import type { Site, CashDispatch } from '../../types';
+import type { Site, CashDispatch, User } from '../../types';
+import { usePagination } from '../../hooks/usePagination';
+import { Pagination } from '../../components/shared/Pagination';
 import {
   Send,
   Loader2,
   AlertCircle,
   X,
   CheckCircle,
+  Users,
 } from 'lucide-react';
 
 const OwnerCashDispatch: React.FC = () => {
   const [dispatches, setDispatches] = useState<CashDispatch[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
+  const [middlemen, setMiddlemen] = useState<Partial<User>[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const {
+    paginatedData: paginatedDispatches,
+    currentPage,
+    totalPages,
+    goToPage,
+    totalItems,
+  } = usePagination(dispatches, 10);
 
   // Form State
   const [siteId, setSiteId] = useState('');
@@ -24,16 +36,19 @@ const OwnerCashDispatch: React.FC = () => {
   const [purpose, setPurpose] = useState('');
   const [notes, setNotes] = useState('');
   const [dispatchDate, setDispatchDate] = useState(new Date().toISOString().split('T')[0]);
+  const [middlemanId, setMiddlemanId] = useState('');
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [dispatchesRes, sitesRes]: any = await Promise.all([
+      const [dispatchesRes, sitesRes, middlemenRes]: any = await Promise.all([
         api.get('/api/dispatches?limit=100'),
         api.get('/api/sites?limit=100'),
+        api.get('/api/users/middlemen'),
       ]);
       setDispatches(dispatchesRes.data || dispatchesRes || []);
       setSites((sitesRes.data || sitesRes || []).filter((s: Site) => s.status === 'ACTIVE'));
+      setMiddlemen(middlemenRes || []);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to fetch dispatches.');
     } finally {
@@ -50,7 +65,13 @@ const OwnerCashDispatch: React.FC = () => {
     setErrorMsg('');
     setSubmitting(true);
 
-    if (!siteId || !amount || !carrierName || !purpose || !dispatchDate) {
+    let finalCarrierName = carrierName;
+    if (middlemanId) {
+      const selectedM = middlemen.find(m => m.id === middlemanId);
+      if (selectedM) finalCarrierName = selectedM.name;
+    }
+
+    if (!siteId || !amount || (!finalCarrierName && !middlemanId) || !purpose || !dispatchDate) {
       setErrorMsg('All fields marked as required must be filled.');
       setSubmitting(false);
       return;
@@ -60,10 +81,11 @@ const OwnerCashDispatch: React.FC = () => {
       await api.post('/api/dispatches', {
         siteId,
         amount: Number(amount),
-        carrierName,
+        carrierName: finalCarrierName,
         purpose,
         notes: notes || null,
         dispatchDate: new Date(dispatchDate).toISOString(),
+        middlemanId: middlemanId || undefined,
       });
       // Reset & Close
       setModalOpen(false);
@@ -73,6 +95,7 @@ const OwnerCashDispatch: React.FC = () => {
       setPurpose('');
       setNotes('');
       setDispatchDate(new Date().toISOString().split('T')[0]);
+      setMiddlemanId('');
       fetchData();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to dispatch cash.');
@@ -97,6 +120,8 @@ const OwnerCashDispatch: React.FC = () => {
         return 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400';
       case 'DISPUTED':
         return 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-450';
+      case 'PENDING_MIDDLEMAN':
+        return 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400';
       default:
         return 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400';
     }
@@ -143,11 +168,12 @@ const OwnerCashDispatch: React.FC = () => {
                     <th className="px-6 py-4">Site Name</th>
                     <th className="px-6 py-4">Carrier / Purpose</th>
                     <th className="px-6 py-4">Amount</th>
+                    <th className="px-6 py-4">Middleman</th>
                     <th className="px-6 py-4">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {dispatches.map((disp) => (
+                  {paginatedDispatches.map((disp) => (
                     <tr
                       key={disp.id}
                       className="border-b border-slate-100 dark:border-slate-850/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-850/30"
@@ -163,12 +189,24 @@ const OwnerCashDispatch: React.FC = () => {
                         <span className="font-semibold text-slate-800 dark:text-slate-300 block">{disp.carrierName}</span>
                         <span className="text-xs text-slate-450 italic">{disp.purpose}</span>
                       </td>
-                      <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
-                        {formatCurrency(Number(disp.amount))}
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-slate-900 dark:text-white block">{formatCurrency(Number(disp.amount))}</span>
+                        {disp.commissionAmount && Number(disp.commissionAmount) > 0 && (
+                          <span className="text-[11px] text-purple-500">Commission: {formatCurrency(Number(disp.commissionAmount))}</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {disp.middleman?.name ? (
+                          <span className="text-xs font-semibold px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 rounded-md">
+                            {disp.middleman.name}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">Direct</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${getStatusBadge(disp.status)}`}>
-                          {disp.status.replace('_', ' ')}
+                          {disp.status.replace(/_/g, ' ')}
                         </span>
                       </td>
                     </tr>
@@ -177,14 +215,23 @@ const OwnerCashDispatch: React.FC = () => {
               </table>
             )}
           </div>
+          {dispatches.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
+          )}
         </div>
       )}
 
       {/* Dispatch Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-8 z-10 shadow-2xl relative">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 sm:p-8 z-10 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setModalOpen(false)}
               className="absolute top-6 right-6 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -222,32 +269,33 @@ const OwnerCashDispatch: React.FC = () => {
                 </select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-505 dark:text-slate-400 uppercase tracking-wider">Dispatch Amount (₹)</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-505 dark:text-slate-400 uppercase tracking-wider">Dispatch Amount (₹)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="E.G. 25000"
+                      min="1"
+                      required
+                      className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-505 dark:text-slate-400 uppercase tracking-wider">Dispatch Date</label>
                   <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="E.G. 25000"
-                    min="1"
+                    type="date"
+                    value={dispatchDate}
+                    onChange={(e) => setDispatchDate(e.target.value)}
                     required
-                    className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-bold"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-505 dark:text-slate-400 uppercase tracking-wider">Carrier / Courier Name</label>
-                <input
-                  type="text"
-                  value={carrierName}
-                  onChange={(e) => setCarrierName(e.target.value)}
-                  placeholder="Supervisor Amit or Professional Courier"
-                  required
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                />
               </div>
 
               <div className="space-y-1.5">
@@ -262,18 +310,44 @@ const OwnerCashDispatch: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Optional Middleman Selection */}
+              {middlemen.length > 0 && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-505 dark:text-slate-400 uppercase tracking-wider">Dispatch Date</label>
+                  <label className="text-xs font-semibold text-slate-505 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" />
+                    Route via Middleman (Optional)
+                  </label>
+                  <select
+                    value={middlemanId}
+                    onChange={(e) => {
+                      setMiddlemanId(e.target.value);
+                      if (e.target.value) setCarrierName('');
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm font-semibold"
+                  >
+                    <option value="">Direct to Site (No Middleman)</option>
+                    {middlemen.map((m) => (
+                      <option key={m.id} value={m.id} disabled={m.isActive === false}>
+                        {m.name} ({m.email}) {m.isActive === false && '— Deactivated'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {!middlemanId && (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-xs font-semibold text-slate-505 dark:text-slate-400 uppercase tracking-wider">Carrier / Courier Name</label>
                   <input
-                    type="date"
-                    value={dispatchDate}
-                    onChange={(e) => setDispatchDate(e.target.value)}
-                    required
+                    type="text"
+                    value={carrierName}
+                    onChange={(e) => setCarrierName(e.target.value)}
+                    placeholder="Supervisor Amit or Professional Courier"
+                    required={!middlemanId}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   />
                 </div>
-              </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-505 dark:text-slate-400 uppercase tracking-wider">Additional Notes (Optional)</label>

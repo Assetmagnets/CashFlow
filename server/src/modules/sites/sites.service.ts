@@ -10,12 +10,13 @@ import { Decimal } from '@prisma/client/runtime/library';
 export class SitesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query: PaginationDto, userId: string, role: Role) {
-    const { page = 1, limit = 10, search } = query;
+  async findAll(query: any, userId: string, role: Role) {
+    const { page = 1, limit = 10, search, all } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (role === Role.SUPERVISOR) {
+    // If user is a supervisor and didn't explicitly request 'all' sites (needed for transfer destinations)
+    if (role === Role.SUPERVISOR && all !== 'true') {
       where.supervisorId = userId;
     }
     if (search) {

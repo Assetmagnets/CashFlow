@@ -129,20 +129,7 @@ const Login: React.FC = () => {
             </button>
           </form>
 
-          {/* Dummy instructions to help testing */}
-          <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-850/50 space-y-2 text-xs">
-            <h3 className="font-bold text-slate-700 dark:text-slate-350">Quick Test Accounts:</h3>
-            <div className="grid grid-cols-2 gap-3 text-slate-500 dark:text-slate-400">
-              <div>
-                <span className="font-semibold text-slate-600 dark:text-slate-300 block">Owner / Admin:</span>
-                owner@cashflow.com<br />password123
-              </div>
-              <div>
-                <span className="font-semibold text-slate-600 dark:text-slate-300 block">Supervisor:</span>
-                supervisor@cashflow.com<br />password123
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

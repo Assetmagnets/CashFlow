@@ -37,4 +37,8 @@ export class PaginationDto {
   @IsOptional()
   @IsString()
   endDate?: string;
+
+  @IsOptional()
+  @IsString()
+  all?: string;
 }

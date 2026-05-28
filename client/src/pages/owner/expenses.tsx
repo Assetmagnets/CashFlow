@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../lib/api';
 import type { Expense, Site, ExpenseCategory } from '../../types';
+import { usePagination } from '../../hooks/usePagination';
+import { Pagination } from '../../components/shared/Pagination';
 import {
   Receipt,
   Search,
@@ -18,6 +20,14 @@ const OwnerExpenses: React.FC = () => {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [actioning, setActioning] = useState<string | null>(null);
+
+  const {
+    paginatedData: paginatedExpenses,
+    currentPage,
+    totalPages,
+    goToPage,
+    totalItems,
+  } = usePagination(expenses, 10);
   
   // Filtering & Pagination
   const [selectedTab, setSelectedTab] = useState<'PENDING' | 'HISTORY'>('PENDING');
@@ -266,7 +276,7 @@ const OwnerExpenses: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  expenses.map((expense) => {
+                  paginatedExpenses.map((expense) => {
                     const hasReceipt = expense.attachments && expense.attachments.length > 0;
                     return (
                       <tr key={expense.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
@@ -366,14 +376,23 @@ const OwnerExpenses: React.FC = () => {
               </tbody>
             </table>
           </div>
+          {expenses.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
+          )}
         </div>
       )}
 
       {/* Expanded Expense Detail Modal */}
       {selectedExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setSelectedExpense(null)} />
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-8 z-10 shadow-2xl relative">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 sm:p-8 z-10 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelectedExpense(null)}
               className="absolute top-6 right-6 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -465,10 +484,10 @@ const OwnerExpenses: React.FC = () => {
 
       {/* Direct Lightbox Modal for Receipts */}
       {receiptModalUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm" onClick={() => setReceiptModalUrl(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4" onClick={() => setReceiptModalUrl(null)}>
           <button
             onClick={() => setReceiptModalUrl(null)}
-            className="absolute top-8 right-8 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 hover:scale-105 cursor-pointer"
+            className="absolute top-4 right-4 sm:top-8 sm:right-8 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 hover:scale-105 cursor-pointer"
           >
             <XCircle className="w-6 h-6" />
           </button>

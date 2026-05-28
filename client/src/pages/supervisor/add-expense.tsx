@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../lib/api';
 import type { Site, ExpenseCategory, Expense } from '../../types';
+import { usePagination } from '../../hooks/usePagination';
+import { Pagination } from '../../components/shared/Pagination';
 import {
   Receipt,
   Building2,
@@ -34,6 +36,14 @@ const SupervisorAddExpense: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'log' | 'list'>('log');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
+
+  const {
+    paginatedData: paginatedExpenses,
+    currentPage,
+    totalPages,
+    goToPage,
+    totalItems,
+  } = usePagination(expenses, 10);
 
   // Form State
   const [siteId, setSiteId] = useState('');
@@ -621,7 +631,7 @@ const SupervisorAddExpense: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    expenses.map((expense) => {
+                    paginatedExpenses.map((expense) => {
                       const isPending = expense.status === 'PENDING';
                       const createdHoursAgo = (Date.now() - new Date(expense.createdAt).getTime()) / (1000 * 60 * 60);
                       const isEditable = isPending && createdHoursAgo <= 24;
@@ -692,14 +702,14 @@ const SupervisorAddExpense: React.FC = () => {
                               <div className="flex justify-end gap-2">
                                 <button
                                   onClick={() => handleEditClick(expense)}
-                                  className="p-2 bg-slate-50 hover:bg-amber-50 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 hover:text-amber-500 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors"
+                                  className="p-2 bg-slate-50 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 hover:text-amber-500 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors"
                                   title="Edit report"
                                 >
                                   <Edit className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => setDeletingExpenseId(expense.id)}
-                                  className="p-2 bg-slate-50 hover:bg-rose-50 dark:bg-slate-850 dark:hover:bg-rose-950/30 text-slate-505 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors"
+                                  className="p-2 bg-slate-50 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/30 text-slate-500 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors"
                                   title="Delete report"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -718,6 +728,15 @@ const SupervisorAddExpense: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          )}
+          {!loadingExpenses && expenses.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
           )}
         </div>
       )}
@@ -836,7 +855,7 @@ const SupervisorAddExpense: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditingExpense(null)}
-                  className="w-1/2 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-300 font-bold text-sm transition-colors cursor-pointer"
+                  className="w-1/2 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-sm transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -879,7 +898,7 @@ const SupervisorAddExpense: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDeletingExpenseId(null)}
-                className="w-1/2 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-350 font-bold text-sm transition-colors cursor-pointer"
+                className="w-1/2 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-sm transition-colors cursor-pointer"
               >
                 No, Keep it
               </button>

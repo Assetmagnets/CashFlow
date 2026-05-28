@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import type { LedgerEntry, Site } from '../../types';
+import { usePagination } from '../../hooks/usePagination';
+import { Pagination } from '../../components/shared/Pagination';
 import {
   BookOpen,
   Building2,
@@ -97,6 +99,14 @@ const OwnerLedger: React.FC = () => {
     if (!search.trim()) return true;
     return entry.description?.toLowerCase().includes(search.toLowerCase());
   });
+
+  const {
+    paginatedData: paginatedLedger,
+    currentPage,
+    totalPages,
+    goToPage,
+    totalItems,
+  } = usePagination(filteredLedger, 10);
 
   return (
     <div className="space-y-8">
@@ -207,7 +217,7 @@ const OwnerLedger: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredLedger.map((entry) => {
+                  paginatedLedger.map((entry) => {
                     const isCredit = Number(entry.credit) > 0;
                     const isDebit = Number(entry.debit) > 0;
 
@@ -264,6 +274,15 @@ const OwnerLedger: React.FC = () => {
               </tbody>
             </table>
           </div>
+          {filteredLedger.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
+          )}
         </div>
       )}
     </div>

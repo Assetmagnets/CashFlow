@@ -22,4 +22,11 @@ export class DashboardController {
   getSupervisorStats(@CurrentUser('id') userId: string, @Query('siteId') siteId?: string) {
     return this.dashboardService.getSupervisorStats(userId, siteId);
   }
+
+  @Get('middleman')
+  @Roles(Role.MIDDLEMAN)
+  getMiddlemanStats(@CurrentUser('sub') userId: string) {
+    return this.dashboardService.getMiddlemanStats(userId);
+  }
 }
+

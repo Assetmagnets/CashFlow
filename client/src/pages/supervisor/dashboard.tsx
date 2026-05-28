@@ -239,7 +239,7 @@ const SupervisorDashboard: React.FC = () => {
                           <span className="text-[11px] text-slate-400">{disp.carrierName}</span>
                         </td>
                         <td className="py-3 font-semibold text-slate-800 dark:text-slate-250">
-                          {formatCurrency(Number(disp.amount))}
+                          {formatCurrency(disp.amountAfterCommission ? Number(disp.amountAfterCommission) : Number(disp.amount))}
                         </td>
                         <td className="py-3">
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${

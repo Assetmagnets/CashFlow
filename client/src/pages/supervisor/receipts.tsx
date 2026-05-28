@@ -83,7 +83,15 @@ const SupervisorReceipts: React.FC = () => {
 
   const openConfirmModal = (dispatch: CashDispatch) => {
     setSelectedDispatch(dispatch);
-    setReceivedAmount(Number(dispatch.amount));
+    
+    // Explicitly parse and calculate to prevent any type coercion issues
+    const commAmt = dispatch.commissionAmount ? Number(dispatch.commissionAmount) : 0;
+    const origAmt = Number(dispatch.amount);
+    const finalAmt = (dispatch.amountAfterCommission && Number(dispatch.amountAfterCommission) > 0) 
+      ? Number(dispatch.amountAfterCommission) 
+      : (origAmt - commAmt); // Fallback manual calculation just in case the DB field is null
+
+    setReceivedAmount(finalAmt);
     setRemarks('');
     setSuccessMsg('');
     setErrorMsg('');
@@ -97,7 +105,13 @@ const SupervisorReceipts: React.FC = () => {
     setSuccessMsg('');
     setSubmitting(true);
 
-    const discrepancy = Number(selectedDispatch.amount) - receivedAmount;
+    const commAmt = selectedDispatch.commissionAmount ? Number(selectedDispatch.commissionAmount) : 0;
+    const origAmt = Number(selectedDispatch.amount);
+    const expectedAmount = (selectedDispatch.amountAfterCommission && Number(selectedDispatch.amountAfterCommission) > 0) 
+      ? Number(selectedDispatch.amountAfterCommission) 
+      : (origAmt - commAmt);
+      
+    const discrepancy = expectedAmount - receivedAmount;
     if (discrepancy !== 0 && !remarks.trim()) {
       setErrorMsg('Please supply a reason in remarks for the cash discrepancy.');
       setSubmitting(false);
@@ -164,7 +178,7 @@ const SupervisorReceipts: React.FC = () => {
 
           <button
             onClick={() => selectedSiteId && fetchData(selectedSiteId)}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
           >
             Refresh Feed
           </button>
@@ -226,9 +240,13 @@ const SupervisorReceipts: React.FC = () => {
                       </div>
 
                       <div>
-                        <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Amount Dispatched</span>
+                        <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Net Cash to Receive</span>
                         <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
-                          {formatCurrency(Number(disp.amount))}
+                          {formatCurrency(
+                            (disp.amountAfterCommission && Number(disp.amountAfterCommission) > 0) 
+                              ? Number(disp.amountAfterCommission) 
+                              : (Number(disp.amount) - (disp.commissionAmount ? Number(disp.commissionAmount) : 0))
+                          )}
                         </h3>
                       </div>
 
@@ -316,9 +334,9 @@ const SupervisorReceipts: React.FC = () => {
 
       {/* Verification Dialog / Modal */}
       {selectedDispatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setSelectedDispatch(null)} />
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-8 z-10 shadow-2xl relative">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 sm:p-8 z-10 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelectedDispatch(null)}
               className="absolute top-6 right-6 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
@@ -332,9 +350,15 @@ const SupervisorReceipts: React.FC = () => {
             </h3>
 
             <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl mb-6 space-y-2">
-              <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold leading-none">Expected Dispatch</p>
+              <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold leading-none">Actual Cash to Receive</p>
               <div className="flex justify-between items-baseline">
-                <span className="text-2xl font-black text-amber-500">{formatCurrency(Number(selectedDispatch.amount))}</span>
+                <span className="text-2xl font-black text-amber-500">
+                  {formatCurrency(
+                    (selectedDispatch.amountAfterCommission && Number(selectedDispatch.amountAfterCommission) > 0) 
+                      ? Number(selectedDispatch.amountAfterCommission) 
+                      : (Number(selectedDispatch.amount) - (selectedDispatch.commissionAmount ? Number(selectedDispatch.commissionAmount) : 0))
+                  )}
+                </span>
                 <span className="text-xs font-semibold text-slate-500">via {selectedDispatch.carrierName}</span>
               </div>
             </div>
@@ -358,17 +382,25 @@ const SupervisorReceipts: React.FC = () => {
               </div>
 
               {/* Warning if discrepancy */}
-              {Number(selectedDispatch.amount) !== receivedAmount && (
-                <div className="p-3.5 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-455 rounded-xl border border-rose-250 dark:border-rose-900/30 flex items-start gap-2.5 text-xs font-bold leading-normal">
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p>Financial Discrepancy Detected!</p>
-                    <p className="font-normal text-slate-600 dark:text-slate-400 mt-0.5">
-                      You are reporting a discrepancy of <strong className="text-rose-600 dark:text-rose-455">{formatCurrency(Math.abs(Number(selectedDispatch.amount) - receivedAmount))}</strong>. An audit flag will be sent directly to the owner. Remarks are required.
-                    </p>
+              {(() => {
+                const commAmt = selectedDispatch.commissionAmount ? Number(selectedDispatch.commissionAmount) : 0;
+                const origAmt = Number(selectedDispatch.amount);
+                const expected = (selectedDispatch.amountAfterCommission && Number(selectedDispatch.amountAfterCommission) > 0) 
+                  ? Number(selectedDispatch.amountAfterCommission) 
+                  : (origAmt - commAmt);
+                  
+                return expected !== receivedAmount && (
+                  <div className="p-3.5 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-455 rounded-xl border border-rose-250 dark:border-rose-900/30 flex items-start gap-2.5 text-xs font-bold leading-normal">
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p>Financial Discrepancy Detected!</p>
+                      <p className="font-normal text-slate-600 dark:text-slate-400 mt-0.5">
+                        You are reporting a discrepancy of <strong className="text-rose-600 dark:text-rose-455">{formatCurrency(Math.abs(expected - receivedAmount))}</strong>. An audit flag will be sent directly to the owner. Remarks are required.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Remarks/Reasons for discrepancy */}
               <div className="space-y-1.5">
@@ -379,11 +411,21 @@ const SupervisorReceipts: React.FC = () => {
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
                   placeholder={
-                    Number(selectedDispatch.amount) !== receivedAmount
-                      ? "Explain what caused this cash difference..."
-                      : "Optional comments about transit quality or note counts..."
+                    (() => {
+                      const commAmt = selectedDispatch.commissionAmount ? Number(selectedDispatch.commissionAmount) : 0;
+                      const expected = (selectedDispatch.amountAfterCommission && Number(selectedDispatch.amountAfterCommission) > 0) ? Number(selectedDispatch.amountAfterCommission) : (Number(selectedDispatch.amount) - commAmt);
+                      return expected !== receivedAmount
+                        ? "Explain what caused this cash difference..."
+                        : "Optional comments about transit quality or note counts...";
+                    })()
                   }
-                  required={Number(selectedDispatch.amount) !== receivedAmount}
+                  required={
+                    (() => {
+                      const commAmt = selectedDispatch.commissionAmount ? Number(selectedDispatch.commissionAmount) : 0;
+                      const expected = (selectedDispatch.amountAfterCommission && Number(selectedDispatch.amountAfterCommission) > 0) ? Number(selectedDispatch.amountAfterCommission) : (Number(selectedDispatch.amount) - commAmt);
+                      return expected !== receivedAmount;
+                    })()
+                  }
                   rows={3}
                   className="w-full px-4 py-3 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                 />
@@ -393,7 +435,7 @@ const SupervisorReceipts: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedDispatch(null)}
-                  className="w-1/2 py-3 rounded-xl border border-slate-205 dark:border-slate-800 hover:bg-slate-55 dark:hover:bg-slate-850 text-slate-650 dark:text-slate-300 font-bold text-sm transition-colors cursor-pointer"
+                  className="w-1/2 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-sm transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

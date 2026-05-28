@@ -12,6 +12,17 @@
   --color-dark-card: #1e293b;
   --color-dark-border: #334155;
 
+  /* Custom intermediate slate shades used throughout the UI */
+  --color-slate-55: #f6f8fa;
+  --color-slate-150: #eaeff4;
+  --color-slate-205: #dfe5ec;
+  --color-slate-250: #d2dce6;
+  --color-slate-350: #a4b9cc;
+  --color-slate-505: #5e738a;
+  --color-slate-550: #54687d;
+  --color-slate-650: #3b5063;
+  --color-slate-850: #152238;
+
   --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 

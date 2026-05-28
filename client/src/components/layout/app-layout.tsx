@@ -16,7 +16,10 @@ import {
   Menu,
   X,
   User as UserIcon,
+  ArrowRightLeft,
 } from 'lucide-react';
+
+import { toast } from 'react-hot-toast';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -25,11 +28,14 @@ interface AppLayoutProps {
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { user, token, logout } = useAuthStore();
   const { unreadCount, fetchUnreadCount } = useNotificationStore();
+  const prevUnreadCountRef = React.useRef(unreadCount);
+
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('theme') === 'dark' || 
       (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,6 +48,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  // Toast notification logic
+  useEffect(() => {
+    if (unreadCount > prevUnreadCountRef.current) {
+      toast.success(`You have a new update!`, {
+        icon: '🔔',
+        duration: 4000,
+        style: {
+          borderRadius: '12px',
+          background: darkMode ? '#1e293b' : '#fff',
+          color: darkMode ? '#fff' : '#0f172a',
+        },
+      });
+    }
+    prevUnreadCountRef.current = unreadCount;
+  }, [unreadCount, darkMode]);
 
   useEffect(() => {
     if (user && token) {
@@ -73,15 +95,24 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       return [
         { label: 'Dashboard', path: '/owner/dashboard', icon: LayoutDashboard },
         { label: 'Construction Sites', path: '/owner/sites', icon: Building2 },
+        { label: 'User Management', path: '/owner/users', icon: UserIcon },
         { label: 'Cash Dispatch', path: '/owner/dispatch', icon: Send },
+        { label: 'Site Transfers', path: '/owner/transfers', icon: ArrowRightLeft },
         { label: 'All Expenses', path: '/owner/expenses', icon: Receipt },
         { label: 'Central Ledger', path: '/owner/ledger', icon: BookOpen },
         { label: 'Analytics Reports', path: '/owner/reports', icon: FileSpreadsheet },
+      ];
+    } else if (user?.role === 'MIDDLEMAN') {
+      return [
+        { label: 'Dashboard', path: '/middleman/dashboard', icon: LayoutDashboard },
+        { label: 'Dispatches', path: '/middleman/dispatches', icon: ArrowRightLeft },
+        { label: 'My Ledger', path: '/middleman/ledger', icon: BookOpen },
       ];
     } else {
       return [
         { label: 'Site Dashboard', path: '/supervisor/dashboard', icon: LayoutDashboard },
         { label: 'Confirm Receipts', path: '/supervisor/receipts', icon: Send },
+        { label: 'Site Transfers', path: '/supervisor/transfers', icon: ArrowRightLeft },
         { label: 'Add Expense', path: '/supervisor/expenses', icon: Receipt },
         { label: 'Site Ledger', path: '/supervisor/ledger', icon: BookOpen },
       ];
@@ -180,7 +211,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-4">
             {/* Notifications Button */}
             <Link
-              to={user?.role === 'OWNER' ? '/owner/notifications' : '/supervisor/notifications'}
+              to={user?.role === 'OWNER' ? '/owner/notifications' : user?.role === 'MIDDLEMAN' ? '/middleman/notifications' : '/supervisor/notifications'}
               className="relative p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
             >
               <Bell className="w-5 h-5" />
@@ -192,10 +223,30 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             </Link>
 
             {/* Quick Profile display */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-slate-700 dark:text-slate-350 shadow-inner">
-                <UserIcon className="w-5 h-5" />
-              </div>
+            <div className="relative">
+              <button 
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="flex items-center gap-3 focus:outline-none"
+              >
+                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center font-bold text-slate-700 dark:text-slate-350 shadow-inner cursor-pointer">
+                  <UserIcon className="w-5 h-5" />
+                </div>
+              </button>
+
+              {profileDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>

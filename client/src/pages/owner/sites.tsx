@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Site, User } from '../../types';
+import { usePagination } from '../../hooks/usePagination';
+import { Pagination } from '../../components/shared/Pagination';
 import {
   Building2,
   MapPin,
@@ -20,6 +22,14 @@ const OwnerSites: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const {
+    paginatedData: paginatedSites,
+    currentPage,
+    totalPages,
+    goToPage,
+    totalItems,
+  } = usePagination(sites, 10);
 
   // Form State
   const [code, setCode] = useState('');
@@ -119,7 +129,7 @@ const OwnerSites: React.FC = () => {
               <p className="text-sm text-slate-550 mt-0.5">Click "Create New Site" to configure your first location.</p>
             </div>
           ) : (
-            sites.map((site) => (
+            paginatedSites.map((site) => (
               <div
                 key={site.id}
                 className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-6 hover:shadow-lg transition-all relative flex flex-col justify-between"
@@ -170,11 +180,21 @@ const OwnerSites: React.FC = () => {
         </div>
       )}
 
+      {!loading && sites.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+          totalItems={totalItems}
+          itemsPerPage={10}
+        />
+      )}
+
       {/* Creation Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-8 z-10 shadow-2xl relative">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 sm:p-8 z-10 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setModalOpen(false)}
               className="absolute top-6 right-6 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -240,8 +260,8 @@ const OwnerSites: React.FC = () => {
                 >
                   <option value="">Unassigned / Keep Blank</option>
                   {supervisors.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.email})
+                    <option key={s.id} value={s.id} disabled={s.isActive === false}>
+                      {s.name} ({s.email}) {s.isActive === false && '— Deactivated'}
                     </option>
                   ))}
                 </select>
@@ -251,7 +271,7 @@ const OwnerSites: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="w-1/2 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors cursor-pointer"
+                  className="w-1/2 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

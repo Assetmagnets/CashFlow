@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../lib/api';
+import { downloadExpensesPDF } from '../../lib/pdf-utils';
 import type { Site } from '../../types';
 import {
   FileSpreadsheet,
@@ -31,6 +32,7 @@ const OwnerReports: React.FC = () => {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   // Filters State
@@ -117,13 +119,33 @@ const OwnerReports: React.FC = () => {
     }).format(val);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleExcelExport = () => {
-    // Standard visual prompt for API Excel export
-    window.open(`/api/reports/export/excel?siteId=${selectedSiteId}&startDate=${startDate}&endDate=${endDate}`, '_blank');
+  const handleDownloadPDF = async () => {
+    try {
+      setPdfGenerating(true);
+      setErrorMsg('');
+      
+      let siteQuery = selectedSiteId ? `siteId=${selectedSiteId}&` : '';
+      const url = `/api/expenses?${siteQuery}startDate=${startDate}&endDate=${endDate}&limit=1000`;
+      
+      const res: any = await api.get(url);
+      const expenseData = res.data || res || [];
+      
+      if (!expenseData.length) {
+        setErrorMsg('No expenses found in this timeframe to generate a PDF.');
+        return;
+      }
+      
+      const siteName = selectedSiteId && sites.find(s => s.id === selectedSiteId)?.name;
+      const subtitle = siteName 
+        ? `Site: ${siteName} | Period: ${startDate} to ${endDate}`
+        : `All Sites | Period: ${startDate} to ${endDate}`;
+        
+      downloadExpensesPDF(expenseData, 'Expenditure Report', subtitle);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to download PDF.');
+    } finally {
+      setPdfGenerating(false);
+    }
   };
 
   return (
@@ -142,18 +164,12 @@ const OwnerReports: React.FC = () => {
 
         <div className="flex gap-2">
           <button
-            onClick={handlePrint}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 cursor-pointer"
+            onClick={handleDownloadPDF}
+            disabled={pdfGenerating}
+            className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer disabled:opacity-70 transition-colors"
           >
-            <Printer className="w-4 h-4" />
-            Print PDF
-          </button>
-          <button
-            onClick={handleExcelExport}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            Export Excel
+            {pdfGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Download PDF Report
           </button>
         </div>
       </div>
@@ -205,7 +221,7 @@ const OwnerReports: React.FC = () => {
         <button
           onClick={fetchChartData}
           disabled={refreshing}
-          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-350 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-55 cursor-pointer"
+          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-55 cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh

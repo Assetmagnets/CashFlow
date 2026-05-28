@@ -46,7 +46,14 @@ const SupervisorPendingReceipts: React.FC = () => {
 
   const openConfirmModal = (dispatch: CashDispatch) => {
     setSelectedDispatch(dispatch);
-    setReceivedAmount(dispatch.amount.toString());
+    
+    const commAmt = dispatch.commissionAmount ? Number(dispatch.commissionAmount) : 0;
+    const origAmt = Number(dispatch.amount);
+    const finalAmt = (dispatch.amountAfterCommission && Number(dispatch.amountAfterCommission) > 0) 
+      ? Number(dispatch.amountAfterCommission) 
+      : (origAmt - commAmt);
+      
+    setReceivedAmount(finalAmt.toString());
     setRemarks('');
     setErrorMsg('');
   };
@@ -71,7 +78,12 @@ const SupervisorPendingReceipts: React.FC = () => {
       return;
     }
 
-    const expectedNum = parseFloat(selectedDispatch.amount as any);
+    const commAmt = selectedDispatch.commissionAmount ? Number(selectedDispatch.commissionAmount) : 0;
+    const origAmt = Number(selectedDispatch.amount);
+    const expectedNum = (selectedDispatch.amountAfterCommission && Number(selectedDispatch.amountAfterCommission) > 0) 
+      ? Number(selectedDispatch.amountAfterCommission) 
+      : (origAmt - commAmt);
+      
     const discrepancy = expectedNum - receivedNum;
 
     // Require remarks if there is a discrepancy
@@ -122,7 +134,12 @@ const SupervisorPendingReceipts: React.FC = () => {
 
   const calculateDiscrepancy = () => {
     if (!selectedDispatch || !receivedAmount) return 0;
-    const expected = parseFloat(selectedDispatch.amount as any);
+    const commAmt = selectedDispatch.commissionAmount ? Number(selectedDispatch.commissionAmount) : 0;
+    const origAmt = Number(selectedDispatch.amount);
+    const expected = (selectedDispatch.amountAfterCommission && Number(selectedDispatch.amountAfterCommission) > 0) 
+      ? Number(selectedDispatch.amountAfterCommission) 
+      : (origAmt - commAmt);
+      
     const received = parseFloat(receivedAmount);
     if (isNaN(received)) return 0;
     return expected - received;
@@ -187,10 +204,12 @@ const SupervisorPendingReceipts: React.FC = () => {
 
                   <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl space-y-2 border border-slate-100 dark:border-slate-850">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 font-semibold">Expected Cash</span>
+                      <span className="text-slate-400 font-semibold">Net Cash Expected</span>
                       <span className="font-extrabold text-slate-900 dark:text-white flex items-center text-sm">
                         <IndianRupee className="w-3.5 h-3.5" />
-                        {Number(dispatch.amount).toLocaleString('en-IN')}
+                        {((dispatch.amountAfterCommission && Number(dispatch.amountAfterCommission) > 0) 
+                          ? Number(dispatch.amountAfterCommission) 
+                          : (Number(dispatch.amount) - (dispatch.commissionAmount ? Number(dispatch.commissionAmount) : 0))).toLocaleString('en-IN')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
@@ -242,9 +261,9 @@ const SupervisorPendingReceipts: React.FC = () => {
 
       {/* Confirmation Modal */}
       {selectedDispatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={closeConfirmModal} />
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-8 z-10 shadow-2xl relative">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 sm:p-8 z-10 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={closeConfirmModal}
               className="absolute top-6 right-6 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -274,7 +293,11 @@ const SupervisorPendingReceipts: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-slate-400 font-semibold">Expected Amount</span>
                   <span className="font-extrabold text-amber-500 dark:text-amber-400">
-                    {formatCurrency(parseFloat(selectedDispatch.amount as any))}
+                    {formatCurrency(
+                      (selectedDispatch.amountAfterCommission && Number(selectedDispatch.amountAfterCommission) > 0) 
+                        ? Number(selectedDispatch.amountAfterCommission) 
+                        : (Number(selectedDispatch.amount) - (selectedDispatch.commissionAmount ? Number(selectedDispatch.commissionAmount) : 0))
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between">

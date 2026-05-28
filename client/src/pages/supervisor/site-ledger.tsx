@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../lib/api';
 import type { Site, LedgerEntry } from '../../types';
+import { usePagination } from '../../hooks/usePagination';
+import { Pagination } from '../../components/shared/Pagination';
 import {
   BookOpen,
   Building2,
@@ -93,6 +95,14 @@ const SupervisorSiteLedger: React.FC = () => {
     if (!search.trim()) return true;
     return entry.description?.toLowerCase().includes(search.toLowerCase());
   });
+
+  const {
+    paginatedData: paginatedLedger,
+    currentPage,
+    totalPages,
+    goToPage,
+    totalItems,
+  } = usePagination(filteredLedger, 10);
 
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
@@ -220,7 +230,7 @@ const SupervisorSiteLedger: React.FC = () => {
                         </td>
                       </tr>
                     ) : (
-                      filteredLedger.map((entry) => {
+                      paginatedLedger.map((entry) => {
                         const isCredit = Number(entry.credit) > 0;
                         const isDebit = Number(entry.debit) > 0;
 
@@ -268,6 +278,15 @@ const SupervisorSiteLedger: React.FC = () => {
                 </table>
               </div>
             </div>
+          )}
+          {!loadingLedger && filteredLedger.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
           )}
         </>
       )}

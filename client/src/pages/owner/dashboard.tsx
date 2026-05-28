@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../stores/auth-store';
+import { downloadExpensesPDF } from '../../lib/pdf-utils';
 import api from '../../lib/api';
 import type { DashboardStats } from '../../types';
 import {
@@ -12,6 +13,7 @@ import {
   ArrowRight,
   TrendingDown,
   Loader2,
+  Download,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -30,6 +32,7 @@ const OwnerDashboard: React.FC = () => {
   const { user } = useAuthStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
   const [error, setError] = useState('');
 
   const fetchStats = async (isBackground = false) => {
@@ -65,6 +68,31 @@ const OwnerDashboard: React.FC = () => {
     }).format(val);
   };
 
+  const handleDownloadPDF = async () => {
+    try {
+      setPdfGenerating(true);
+      // Fetch last 30 days of expenses for all sites
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      const startDate = d.toISOString().split('T')[0];
+      const endDate = new Date().toISOString().split('T')[0];
+      
+      const res: any = await api.get(`/api/expenses?startDate=${startDate}&endDate=${endDate}&limit=1000`);
+      const expenseData = res.data || res || [];
+      
+      if (!expenseData.length) {
+        alert('No expenses found in the last 30 days.');
+        return;
+      }
+      
+      downloadExpensesPDF(expenseData, 'Monthly Dashboard Report', `All Sites | Period: ${startDate} to ${endDate}`);
+    } catch (err: any) {
+      alert(err.message || 'Failed to download PDF.');
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -97,9 +125,19 @@ const OwnerDashboard: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">Hello, {user?.name}</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">Here is the real-time operational status of all active sites.</p>
         </div>
-        <div className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 text-sm font-medium flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-amber-500" />
-          {new Date().toLocaleDateString('default', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 text-sm font-medium flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-amber-500" />
+            {new Date().toLocaleDateString('default', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfGenerating}
+            className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer disabled:opacity-70 transition-colors w-full sm:w-auto"
+          >
+            {pdfGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Download PDF Report
+          </button>
         </div>
       </div>
 

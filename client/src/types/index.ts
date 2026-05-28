@@ -1,9 +1,10 @@
-export type UserRole = 'OWNER' | 'SUPERVISOR';
+export type UserRole = 'OWNER' | 'SUPERVISOR' | 'MIDDLEMAN';
 export type SiteStatus = 'ACTIVE' | 'INACTIVE';
-export type DispatchStatus = 'PENDING_RECEIPT' | 'RECEIVED' | 'PARTIAL_RECEIVED' | 'DISPUTED';
-export type TransactionType = 'CASH_RECEIVED' | 'EXPENSE' | 'ADJUSTMENT';
-export type NotificationType = 'DISPATCH_CREATED' | 'RECEIPT_PENDING' | 'RECEIPT_CONFIRMED' | 'LOW_BALANCE' | 'EXPENSE_ADDED' | 'EXPENSE_APPROVED' | 'EXPENSE_REJECTED';
+export type DispatchStatus = 'PENDING_MIDDLEMAN' | 'PENDING_RECEIPT' | 'RECEIVED' | 'PARTIAL_RECEIVED' | 'DISPUTED';
+export type TransactionType = 'CASH_RECEIVED' | 'EXPENSE' | 'ADJUSTMENT' | 'SITE_TRANSFER_IN' | 'SITE_TRANSFER_OUT';
+export type NotificationType = 'DISPATCH_CREATED' | 'RECEIPT_PENDING' | 'RECEIPT_CONFIRMED' | 'LOW_BALANCE' | 'EXPENSE_ADDED' | 'EXPENSE_APPROVED' | 'EXPENSE_REJECTED' | 'MIDDLEMAN_FORWARDED' | 'TRANSFER_CREATED' | 'TRANSFER_RECEIVED';
 export type ExpenseStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type SiteTransferStatus = 'PENDING' | 'RECEIVED' | 'REJECTED';
 
 
 export interface User {
@@ -39,8 +40,13 @@ export interface CashDispatch {
   dispatchDate: string;
   status: DispatchStatus;
   createdById: string;
+  middlemanId?: string;
+  commissionAmount?: number;
+  amountAfterCommission?: number;
+  middlemanProcessedAt?: string;
   site?: Partial<Site>;
   createdBy?: Partial<User>;
+  middleman?: Partial<User>;
   receipt?: Partial<CashReceipt>;
   createdAt: string;
   updatedAt: string;
@@ -123,6 +129,23 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface SiteTransfer {
+  id: string;
+  fromSiteId: string;
+  toSiteId: string;
+  amount: number;
+  notes?: string;
+  status: SiteTransferStatus;
+  initiatedById: string;
+  receivedById?: string;
+  fromSite?: Partial<Site>;
+  toSite?: Partial<Site>;
+  initiatedBy?: Partial<User>;
+  receivedBy?: Partial<User>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DashboardStats {
   activeSitesCount: number;
   totalCashAtSites: number;
@@ -148,3 +171,12 @@ export interface SupervisorStats {
   recentExpenses: Expense[];
   categoryExpenses: { category: string; amount: number }[];
 }
+
+export interface MiddlemanStats {
+  pendingCount: number;
+  totalProcessed: number;
+  totalCommissionEarned: number;
+  totalAmountForwarded: number;
+  recentDispatches: CashDispatch[];
+}
+

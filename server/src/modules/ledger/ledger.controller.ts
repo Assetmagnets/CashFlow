@@ -45,4 +45,19 @@ export class LedgerController {
       role,
     );
   }
+
+  @Get('middleman')
+  findMiddlemanLedger(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: Role,
+    @Query() query: PaginationDto,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.ledgerService.findMiddlemanLedger(
+      { ...query, startDate, endDate },
+      userId,
+      role,
+    );
+  }
 }
