@@ -10,7 +10,25 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   
-  app.use(helmet());
+  // Advanced Security Headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
+          connectSrc: ["'self'"],
+        },
+      },
+      hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+      },
+    })
+  );
 
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Restrict to frontend origin

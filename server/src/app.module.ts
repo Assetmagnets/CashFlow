@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -16,6 +16,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { FileUploadModule } from './modules/file-upload/file-upload.module';
 import { MiddlemanModule } from './modules/middleman/middleman.module';
 import { SiteTransferModule } from './modules/site-transfer/site-transfer.module';
+import { MailModule } from './modules/mail/mail.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 @Module({
   imports: [
@@ -41,11 +44,17 @@ import { SiteTransferModule } from './modules/site-transfer/site-transfer.module
     FileUploadModule,
     MiddlemanModule,
     SiteTransferModule,
+    EventEmitterModule.forRoot(),
+    MailModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
   ],
 })

@@ -132,7 +132,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
           <div>
             <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-none">CASHFLOW</h1>
-            <span className="text-[10px] text-amber-500 dark:text-amber-400 font-semibold tracking-widest uppercase">SITE MANAGER</span>
+            <span className="text-[10px] text-amber-500 dark:text-amber-400 font-semibold tracking-widest uppercase">{user?.role ? `${user.role} PORTAL` : 'SITE MANAGER'}</span>
           </div>
         </div>
 
@@ -269,7 +269,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-slate-900 dark:text-white">CASHFLOW</h1>
-                  <span className="text-[10px] text-amber-500 font-semibold tracking-wider uppercase">MOBILE</span>
+                  <span className="text-[10px] text-amber-500 font-semibold tracking-wider uppercase">{user?.role ? `${user.role} PORTAL` : 'SITE MANAGER'}</span>
                 </div>
               </div>
 

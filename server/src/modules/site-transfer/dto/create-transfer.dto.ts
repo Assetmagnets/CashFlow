@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min, MaxLength } from 'class-validator';
 
 export class CreateTransferDto {
   @IsString()
@@ -13,5 +13,6 @@ export class CreateTransferDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   notes?: string;
 }

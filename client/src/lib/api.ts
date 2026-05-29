@@ -42,7 +42,13 @@ api.interceptors.response.use(
       }
     }
     // Extract cleaner error messages
-    const message = error.response?.data?.message || 'Something went wrong';
+    let message = error.response?.data?.message || 'Something went wrong';
+    
+    // NestJS validation pipes often return an array of strings for multiple errors
+    if (Array.isArray(message)) {
+      message = message.join(' • ');
+    }
+    
     return Promise.reject(new Error(message));
   }
 );
